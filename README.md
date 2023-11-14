@@ -3,4 +3,4 @@ Kodi kiegészítő a moviedrive-hoz
 
 1.0.0 - Első verzió
 
-![Logo](main/icon.png)
+![Logo](icon.png)
