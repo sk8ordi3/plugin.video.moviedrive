@@ -30,6 +30,13 @@ sysaddon = sys.argv[0]
 syshandle = int(sys.argv[1])
 addonFanart = xbmcaddon.Addon().getAddonInfo('fanart')
 
+version = xbmcaddon.Addon().getAddonInfo('version')
+kodi_version = xbmc.getInfoLabel('System.BuildVersion')
+
+base_log_info = f'Moviedrive | v{version} | Kodi: {kodi_version[:5]}'
+
+xbmc.log(f'{base_log_info}', xbmc.LOGINFO)
+
 base_url = 'https://moviedrive.hu'
 
 BR_VERS = [
@@ -48,7 +55,10 @@ ind_ex = random.randrange(len(RAND_UAS))
 r_u_a = RAND_UAS[ind_ex].format(win_ver=random.choice(WIN_VERS), feature=random.choice(FEATURES), br_ver=random.choice(BR_VERS[ind_ex]))
 
 movie_drive_headers = {
-    'User-Agent': r_u_a,
+    'authority': 'moviedrive.hu',
+    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+    'accept-language': 'hu,en;q=0.9',    
+    'user-agent': r_u_a,
 }
 
 movie_drive_session = requests.Session()
@@ -172,7 +182,7 @@ class navigator:
             
             self.addDirectoryItem('[I]Következő oldal[/I]', f'items&url={quote_plus(next_page_link)}', '', 'DefaultFolder.png')
         except AttributeError:
-            xbmc.log(f'Moviedrive | getItems | next_page | csak egy oldal található', xbmc.LOGINFO)
+            xbmc.log(f'{base_log_info}| getItems | next_page | csak egy oldal található', xbmc.LOGINFO)
         
         self.endDirectory('movies')
 
@@ -240,7 +250,7 @@ class navigator:
             
             self.addDirectoryItem('[I]Következő oldal[/I]', f'movie_items&url={quote_plus(next_page_link)}', '', 'DefaultFolder.png')
         except AttributeError:
-            xbmc.log(f'Moviedrive | getOnlyMovies | next_page | csak egy oldal található', xbmc.LOGINFO)
+            xbmc.log(f'{base_log_info}| getOnlyMovies | next_page | csak egy oldal található', xbmc.LOGINFO)
         
         
         self.endDirectory('movies')
@@ -310,7 +320,7 @@ class navigator:
             
             self.addDirectoryItem('[I]Következő oldal[/I]', f'series_items&url={quote_plus(next_page_link)}', '', 'DefaultFolder.png')
         except AttributeError:
-            xbmc.log(f'Moviedrive | getOnlySeries | next_page | csak egy oldal található', xbmc.LOGINFO)
+            xbmc.log(f'{base_log_info}| getOnlySeries | next_page | csak egy oldal található', xbmc.LOGINFO)
         
         
         self.endDirectory('series')       
@@ -383,7 +393,7 @@ class navigator:
             
             self.addDirectoryItem('[I]Következő oldal[/I]', f'movie_items&url={quote_plus(next_page_link)}', '', 'DefaultFolder.png')
         except AttributeError:
-            xbmc.log(f'Moviedrive | getMovieItems | next_page | csak egy oldal található', xbmc.LOGINFO)
+            xbmc.log(f'{base_log_info}| getMovieItems | next_page | csak egy oldal található', xbmc.LOGINFO)
         
         self.endDirectory('movies')
 
@@ -450,7 +460,7 @@ class navigator:
             next_page_link = f'https://moviedrive.hu/filmek/{next_page}'
             self.addDirectoryItem('[I]Következő oldal[/I]', f'series_items&url={next_page_link}', '', 'DefaultFolder.png')
         except AttributeError:
-            xbmc.log(f'Moviedrive | getSeriesItems | next_page | csak egy oldal található', xbmc.LOGINFO)
+            xbmc.log(f'{base_log_info}| getSeriesItems | next_page | csak egy oldal található', xbmc.LOGINFO)
         
         self.endDirectory('series')
 
@@ -461,7 +471,17 @@ class navigator:
         embed_iframe = soup.find('iframe', {'id': 'player'})
         embed_src = embed_iframe['src']
         
-        page_2 = movie_drive_session.get(embed_src)
+        import requests
+        
+        headers = {
+            'authority': 'moviedrive.hu',
+            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+            'accept-language': 'hu,en;q=0.9',
+            'referer': embed_src,
+            'user-agent': r_u_a,
+        }        
+        
+        page_2 = requests.get(embed_src, headers=headers)
         soup_2 = BeautifulSoup(page_2.text, 'html.parser')
         
         video_sources = re.findall(r"{src: '(.*?)', type: 'video/mp4', size: (\d+),}", str(soup_2))
@@ -472,13 +492,13 @@ class navigator:
             highest_size_link, highest_size = highest_size_source
 
         else:
-            xbmc.log(f'Moviedrive | getMovieSources | highest_size_link: No video sources found', xbmc.LOGINFO)
+            xbmc.log(f'{base_log_info}| getMovieSources | highest_size_link: No video sources found', xbmc.LOGINFO)
 
         poster_match = re.search(r"var poster = '(.*?)';", str(soup_2))
         if poster_match:
             poster_url = poster_match.group(1)
         else:
-            xbmc.log(f'Moviedrive | getMovieSources | soup_2: No poster URL found', xbmc.LOGINFO)
+            xbmc.log(f'{base_log_info}| getMovieSources | soup_2: No poster URL found', xbmc.LOGINFO)
 
         title_match = re.search(r"<span class='big-text'>(.*?)</span>", str(soup_2))
         if title_match:
@@ -487,7 +507,7 @@ class navigator:
         try:
             self.addDirectoryItem(f'[B]{highest_size}p - {title}[/B]', f'playmovie&url={highest_size_link}', poster_url, 'DefaultMovies.png', isFolder=False, meta={'title': title})
         except UnboundLocalError:
-            xbmc.log(f'Moviedrive | getSeriesSources | name: No video sources found', xbmc.LOGINFO)
+            xbmc.log(f'{base_log_info}| getSeriesSources | name: No video sources found', xbmc.LOGINFO)
             notification = xbmcgui.Dialog()
             notification.notification("Moviedrive", "Törölt tartalom", time=5000)
         
@@ -589,7 +609,7 @@ class navigator:
                 except UnboundLocalError:
                     notification = xbmcgui.Dialog()
                     notification.notification("Moviedrive", "Törölt tartalom", time=5000)
-                    xbmc.log(f'Moviedrive | getSeriesSources | name: No video sources found', xbmc.LOGINFO)
+                    xbmc.log(f'{base_log_info}| getSeriesSources | name: No video sources found', xbmc.LOGINFO)
 
         self.endDirectory('series')
 
@@ -697,10 +717,20 @@ class navigator:
         if find_block:
             for episode in find_block['episodes']:
                 ep_name = episode['episode']
-                embed_link = episode['embed_link']              
+                embed_link = episode['embed_link']
                 
+                import requests
+                
+                headers = {
+                    'authority': 'moviedrive.hu',
+                    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                    'accept-language': 'hu,en;q=0.9',
+                    'referer': embed_link,
+                    'user-agent': r_u_a,
+                }
+
                 #requests page_xx
-                page_xx = movie_drive_session.get(embed_link)
+                page_xx = requests.get(embed_link, headers=headers)
                 soup_xx = BeautifulSoup(page_xx.text, 'html.parser')
 
                 video_sources = re.findall(r"{src: '(.*?)', type: 'video/mp4', size: (\d+),}", str(soup_xx))
@@ -715,15 +745,15 @@ class navigator:
                 except UnboundLocalError:
                     notification = xbmcgui.Dialog()
                     notification.notification("Moviedrive", "Törölt tartalom", time=5000)
-                    xbmc.log(f'Moviedrive | getEpisodes | name: No video sources found', xbmc.LOGINFO)                    
+                    xbmc.log(f'{base_log_info}| getEpisodes | name: No video sources found', xbmc.LOGINFO)                    
 
         else:
-            xbmc.log(f'Moviedrive | getEpisodes | Block not found: {url}', xbmc.LOGINFO)
+            xbmc.log(f'{base_log_info}| getEpisodes | Block not found: {url}', xbmc.LOGINFO)
 
         self.endDirectory('episodes')
 
     def playMovie(self, url):
-        xbmc.log(f'Moviedrive | playMovie | playing URL: {url}', xbmc.LOGINFO)
+        xbmc.log(f'{base_log_info}| playMovie | playing URL: {url}', xbmc.LOGINFO)
 
         play_item = xbmcgui.ListItem(path=url)
         play_item.setProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36")
