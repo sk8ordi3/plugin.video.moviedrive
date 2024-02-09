@@ -1,0 +1,8 @@
+[B]1.0.3[/B]
+- változások lekövetése
+[B]1.0.2[/B]
+- embed linkhez a referer link hozzáadása
+[B]1.0.1[/B]
+- random-headers hozzáadása
+[B]1.0.0[/B]
+- Első verzió
